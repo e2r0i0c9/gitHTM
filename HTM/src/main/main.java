@@ -1,5 +1,5 @@
 package main;
-import io.*;
+
 import htm.*;
 import util.*;
 
@@ -14,7 +14,7 @@ public class main {
 		// Initialization
 		// Generate input data
 		int time = 200;
-		Input input = new Input(100,350,time);
+		Input input = new Region(100,350,time);
 		
 		NeighborMap neighborMap = new NeighborMap(MaxCalculateRadius);
 		// Create HTM region, initialize receptive field and connection permanence

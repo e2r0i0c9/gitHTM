@@ -11,7 +11,7 @@ public class Synapse {
 	
 	public float permanence;
 	public Region region;
-	public int[] destinyCoor=new int[2];
+	public int[] destCoor=new int[3];
 	
 	
 	public boolean isValid(){
@@ -20,7 +20,7 @@ public class Synapse {
 	}
 	
 	public boolean equals(Synapse s){
-		if(s.destinyCoor[0]==this.destinyCoor[0] && s.destinyCoor[1]==this.destinyCoor[1]) return true;
+		if(s.destCoor[0]==this.destCoor[0] && s.destCoor[1]==this.destCoor[1]) return true;
 		else return false;
 	}
 	
@@ -40,24 +40,27 @@ public class Synapse {
 	}
 	
 	public String toString(){
-		return ("["+destinyCoor[0]+", "+destinyCoor[1]+"]"+permanence);
+		return ("["+destCoor[0]+", "+destCoor[1]+"]"+permanence);
 	}
 	
 	public Synapse(int r, int c){
-		this.destinyCoor[0]=r;
-		this.destinyCoor[1]=c;
+		this.destCoor[0]=r;
+		this.destCoor[1]=c;
 		//non bias
 		this.permanence=(float)(connectedPerm-initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
 	}
-	public Synapse(Region reg, int r, int c){
-		this.destinyCoor[0]=r;
-		this.destinyCoor[1]=c;
+	public Synapse(Region reg, int r, int c, double bias){
 		this.region=reg;
+		this.destCoor[0]=r;
+		this.destCoor[1]=c;
+		//bias
+		this.permanence=(float)((1-initialRange*0.6+(Math.random()+Math.random()*bias)*initialRange)*connectedPerm);
+		
+		
+		//non bias
+		//this.permanence=(float)(connectedPerm-initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
 		//test set all synapse connected
 		//this.permanence=(float)(connectedPerm+initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
-		//non bias
-		this.permanence=(float)(connectedPerm-initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
-		
 	}
 	
 	/**

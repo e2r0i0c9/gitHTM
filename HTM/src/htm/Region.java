@@ -1,6 +1,5 @@
 package htm;
 
-import io.Input;
 import java.util.ArrayList;
 //import java.util.HashMap;
 import util.NeighborMap;
@@ -14,6 +13,8 @@ public class Region {
 	public int column;
 	public Column[][] columns;
 	public ArrayList<Column> activeColumns=new ArrayList<Column>();
+	public ArrayList<ArrayList<int[]>> output = new ArrayList<ArrayList<int[]>>();
+	public ArrayList<SegmentUpdate> SegmentUpdateList;
 	
 	
 	public void overlap(boolean[][] input,int t){
@@ -40,7 +41,7 @@ public class Region {
 			for(Column c : activeColumns){
 				if(c.overlap!=0){
 					for(Synapse s : c.ReceptiveField){
-						if(input[s.destinyCoor[0]][s.destinyCoor[1]]) s.permanenceInc();
+						if(input[s.destCoor[0]][s.destCoor[1]]) s.permanenceInc();
 						else s.permanenceDec();
 					}
 				}
@@ -86,7 +87,46 @@ public class Region {
 		}
 	}
 	
-	public Region(int m,int n,Input input){ 
+	public void print(int t){
+		//System.out.print(output.size());
+		if(t>output.size()-1){
+			System.out.print("There are only "+output.size()+" input time step");
+		}
+		else{
+			boolean[][] outputMatrix=new boolean[row][column];
+			for(int[] coor : output.get(t)){
+				outputMatrix[coor[0]][coor[1]]=true;
+			}
+			for(int i=0; i< row;i++){
+				for(int j=0; j< column; j++){
+					if(outputMatrix[i][j]==true)System.out.print(1);
+					else System.out.print(0);
+				}
+				System.out.print("\n");
+			}
+		}
+	}
+	
+	public Region(int m,int n, int time){
+		this.row=m;
+		this.column=n;
+		//draw something
+		//draw a moving bar watch out for out of boundary
+		for(int i= 0; 8+i<Math.min(column,8+time) ;i++){
+			output.add(i, new ArrayList<int[]>());
+			output.get(i).add(new int[]{0,0+i});
+			output.get(i).add(new int[]{1,1+i});
+			output.get(i).add(new int[]{2,2+i});
+			output.get(i).add(new int[]{3,3+i});
+			output.get(i).add(new int[]{4,4+i});
+			output.get(i).add(new int[]{5,5+i});
+			output.get(i).add(new int[]{6,6+i});
+			output.get(i).add(new int[]{7,7+i});
+			output.get(i).add(new int[]{8,8+i});
+		}
+	}
+	
+	public Region(int m,int n,Region inputRegion, NeighborMap neighborMap){ 
 		this.row=m;
 		this.column=n;
 		//get a m*n array with null in it
@@ -95,9 +135,22 @@ public class Region {
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
 				this.columns[r][c] = new Column(r,c,this,DefaultInhibitionRadius);
-				Double RFCenterRow=(double) (r*(input.row-2*ReceptiveFieldRadius)/row);
-				Double RFCenterColumn=(double) (c*(input.column-2*ReceptiveFieldRadius)/column);
+				//add synapses with a bias towards natural center
+				Double RFCenterRow=(double) (r*inputRegion.row/row);
+				Double RFCenterColumn=(double) (c*inputRegion.column/column);
+				for(int ir=0;ir<=inputRegion.row;ir++){//ir input row, ic input column
+					for(int ic=0;ic<=inputRegion.column;ic++){
+						double dist = Math.sqrt((ir-RFCenterRow)*(ir-RFCenterRow)+(ic-RFCenterColumn)*(ic-RFCenterColumn)+0.01);
+						double bias=Math.exp(-1*dist);
+						if(bias>Math.random()){
+							this.columns[r][c].proSegment.addSynapse(inputRegion,ir,ic,bias);
+						}
+					}
+				}
 				
+				
+				
+				/*
 				int top = Math.max(RFCenterRow.intValue(),0);
 				int bottom = Math.min(top+2*ReceptiveFieldRadius,input.row-1);
 				int left = Math.max(RFCenterColumn.intValue(),0);
@@ -108,8 +161,11 @@ public class Region {
 						this.columns[r][c].addSynapse(ir,ic);
 					}
 				}
+				*/
 			}
 		}
+		//set inhibition radius
+		this.setNeighbor(neighborMap, DefaultInhibitionRadius);
 	}
 
 	/**
@@ -117,12 +173,15 @@ public class Region {
 	 */
 	public static void main(String[] args) {
 		int time = 200;
-		Input input = new Input(100,350,time);
-		Region region = new Region(50,50,input);
-		int t=10;
-		System.out.print(input.toString(t));
+		//Initialize input region
+		Region inputRegion = new Region(100,150,time);
+		//print region output at specific time stamp
+		//inputRegion.print(142);
 		
-		region.overlap(input.get(t),t);
+		NeighborMap neighborMap = new NeighborMap(30);
+		//Initialize HTM region
+		Region region = new Region(50,50,inputRegion,neighborMap);
+		
 		
 		System.out.print("finish");
 

@@ -19,7 +19,7 @@ public class Column {
 	public int posColumn;
 	public Region region;
 	public Cell[] cells=new Cell[Layer];
-	public ArrayList<Synapse> ReceptiveField=new ArrayList<Synapse>();
+	public Segment proSegment=new Segment();
 	public double boost=1.0;
 	public int overlap=0;
 	public ArrayList<Column> neighbor= new ArrayList<Column>();
@@ -28,14 +28,6 @@ public class Column {
 	public LinkedList<Integer> overlapQueue=new LinkedList<Integer>();
 	public int inhibitionRadius;
 	
-	
-	public void addSynapse(int r,int c){
-		Synapse s = new Synapse(r,c);
-		if(!ReceptiveField.contains(s)){
-			this.ReceptiveField.add(s);
-			//System.out.println("add"+x+", "+y);
-		}
-	}
 	
 	public void addNeighbor(Region region,ArrayList<int[]> neighborCoor){
 		this.neighbor = new ArrayList<Column>();
@@ -52,7 +44,7 @@ public class Column {
 		overlap=0;
 		activate=false;
 		for(Synapse s : ReceptiveField){
-			if(s.isValid() && input[s.destinyCoor[0]][s.destinyCoor[1]]){
+			if(s.isValid() && input[s.destCoor[0]][s.destCoor[1]]){
 				overlap+=1;							
 			}
 		}
@@ -142,8 +134,8 @@ public class Column {
 		double size=0;
 		for(Synapse s : ReceptiveField){
 			if(s.isValid()){
-				double dist=(s.destinyCoor[0]*rowFactor-posRow)*(s.destinyCoor[0]*rowFactor-posRow)+
-						(s.destinyCoor[1]*columnFactor-posColumn)*(s.destinyCoor[1]*columnFactor-posColumn);
+				double dist=(s.destCoor[0]*rowFactor-posRow)*(s.destCoor[0]*rowFactor-posRow)+
+						(s.destCoor[1]*columnFactor-posColumn)*(s.destCoor[1]*columnFactor-posColumn);
 				dist=Math.sqrt(dist);
 				if(dist>size) size=dist;
 			}
@@ -170,8 +162,8 @@ public class Column {
 		
 		output+="Receptive Field size: "+ReceptiveField.size()+"\n";
 		for(Synapse s : ReceptiveField){
-			output += "("+s.destinyCoor[0]+",";
-			output += s.destinyCoor[1]+"),";
+			output += "("+s.destCoor[0]+",";
+			output += s.destCoor[1]+"),";
 		}
 		//Neighbor
 		output+="\nNeighbor size: "+neighbor.size()+"\n";
