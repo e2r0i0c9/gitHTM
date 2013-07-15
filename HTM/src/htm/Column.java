@@ -160,17 +160,42 @@ public class Column {
 		output+="\n";
 		//receptive field
 		
-		output+="Receptive Field size: "+ReceptiveField.size()+"\n";
-		for(Synapse s : ReceptiveField){
+		output+="Receptive Field size: "+proSegment.synapses.size()+"\n";
+		int row=100;
+		int column=150;
+		boolean[][] outputMatrix=new boolean[row][column];
+		int countConnectedSynapses=0;
+		for(Synapse s: proSegment.synapses){
+			//print only connected Synapses
+			if(s.isConnected()){
+				outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
+				countConnectedSynapses++;
+			}
+			//print all synapses
+			//outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
+		}
+		output+="Connected Synapses: "+countConnectedSynapses+"\n";
+		for(int i=0; i< row;i++){
+			for(int j=0; j< column; j++){
+				if(outputMatrix[i][j]==true)output+="1";
+				else output+="0";
+			}
+			output+="\n";
+		}
+		/*
+		for(Synapse s : proSegment.synapses){
 			output += "("+s.destCoor[0]+",";
 			output += s.destCoor[1]+"),";
 		}
+		*/
+		
+		/*
 		//Neighbor
 		output+="\nNeighbor size: "+neighbor.size()+"\n";
 		for(Column c : neighbor){
 			output += "("+c.posRow+","+c.posColumn+"),";
 		}
-		
+		*/
 		return(output);
 	}
 	

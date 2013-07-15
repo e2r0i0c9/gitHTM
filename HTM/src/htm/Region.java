@@ -138,9 +138,9 @@ public class Region {
 				//add synapses with a bias towards natural center
 				Double RFCenterRow=(double) (r*inputRegion.row/row);
 				Double RFCenterColumn=(double) (c*inputRegion.column/column);
-				for(int ir=0;ir<=inputRegion.row;ir++){//ir input row, ic input column
-					for(int ic=0;ic<=inputRegion.column;ic++){
-						double dist = Math.sqrt((ir-RFCenterRow)*(ir-RFCenterRow)+(ic-RFCenterColumn)*(ic-RFCenterColumn)+0.01);
+				for(int ir=0;ir<inputRegion.row;ir++){//ir input row, ic input column
+					for(int ic=0;ic<inputRegion.column;ic++){
+						double dist = 0.2*Math.sqrt((ir-RFCenterRow)*(ir-RFCenterRow)+(ic-RFCenterColumn)*(ic-RFCenterColumn)+0.01);
 						double bias=Math.exp(-1*dist);
 						if(bias>Math.random()){
 							this.columns[r][c].proSegment.addSynapse(inputRegion,ir,ic,bias);

@@ -14,7 +14,7 @@ public class Synapse {
 	public int[] destCoor=new int[3];
 	
 	
-	public boolean isValid(){
+	public boolean isConnected(){
 		if(permanence>connectedPerm) return true;
 		else return false;
 	}
