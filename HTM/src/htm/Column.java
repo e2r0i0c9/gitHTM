@@ -15,6 +15,8 @@ public class Column {
 	static final double OverlapDutyCycleFraction=0.5;
 	static final int DutyCycle=100;
 	static final double BoostStep=2.0;
+	//min threshold for to consider a segment as best matching segment
+	static final int MinThreshold=1;
 	
 	public int posRow;
 	public int posColumn;
@@ -164,6 +166,47 @@ public class Column {
 		return size;
 	}
 	
+	public Cell getBestMatchingCell() {
+		int max=MinThreshold;
+		Segment bestMatchingSegment=new Segment();
+		Cell bestMatchingCell = new Cell();
+		boolean found=false;
+		for(Cell cell : cells){
+			int count=0;
+			for(Segment seg : cell.distSegments){
+				for(Synapse s : seg.synapses){
+					if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true){
+						count++;
+					}
+				}
+				if(count>max){
+					found=true;
+					max=count;
+					bestMatchingSegment=seg;
+					bestMatchingCell=cell;
+				}
+			}	
+		}
+		
+		if(found){
+			region.SegmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, region)));
+		}else{
+			int min = cells[0].distSegments.size();
+			bestMatchingCell=cells[0];
+			for(Cell cell : cells){
+				if(cell.distSegments.size()<min){
+					min=cell.distSegments.size();
+					bestMatchingCell=cell;
+				}
+			}
+			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, region);
+			bestMatchingCell.distSegments.add(bestMatchingSegment);
+			region.SegmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
+		}
+		return bestMatchingCell;
+	}
+	
+	
 	public String toString(){
 		String output="\n";
 		output+="["+posRow+", "+posColumn+"]";
@@ -239,5 +282,6 @@ public class Column {
 		
 
 	}
+
 
 }

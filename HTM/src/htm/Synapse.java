@@ -10,8 +10,9 @@ public class Synapse {
 	
 	
 	public float permanence;
-	public Region region;
+	public Region destRegion;
 	public int[] destCoor=new int[3];
+	public boolean update=false;
 	
 	
 	public boolean isConnected(){
@@ -20,8 +21,8 @@ public class Synapse {
 	}
 	
 	public boolean equals(Synapse s){
-		if(s.destCoor[0]==this.destCoor[0] && s.destCoor[1]==this.destCoor[1]) return true;
-		else return false;
+		if(s.destCoor[0]==this.destCoor[0] && s.destCoor[1]==this.destCoor[1] && s.destCoor[2]==this.destCoor[2] && s.destRegion==this.destRegion) return true;
+		return false;
 	}
 	
 	public void permanenceInc(){
@@ -43,14 +44,16 @@ public class Synapse {
 		return ("["+destCoor[0]+", "+destCoor[1]+destCoor[2]+"]"+permanence);
 	}
 	
-	public Synapse(int r, int c){
+	public Synapse(Region reg, int r, int c,int l){
+		this.destRegion=reg;
 		this.destCoor[0]=r;
 		this.destCoor[1]=c;
+		this.destCoor[2]=l;
 		//non bias
 		this.permanence=(float)(connectedPerm-initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
 	}
 	public Synapse(Region reg, int r, int c, double bias){
-		this.region=reg;
+		this.destRegion=reg;
 		this.destCoor[0]=r;
 		this.destCoor[1]=c;
 		//bias

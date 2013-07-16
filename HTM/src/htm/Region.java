@@ -97,6 +97,43 @@ public class Region {
 		}
 	}
 	
+	public void setCellActiveState() {
+		for(Column col : activeColumns){
+			boolean buPredicted=false;
+			boolean lcChosen=false;
+			
+			for(Cell cell : col.cells){
+				if(cell.pPredictiveState==true){
+					ArrayList<Segment> activeSegments = cell.getActiveSegments();
+					if(activeSegments.size()>0){
+						for(Segment seg : activeSegments){
+							if(seg.sequenceSegment==true){
+								buPredicted=true;
+								cell.tActiveState=true;
+								//This segment is active due to learning cell?
+								if(seg.segmentActive(false)){
+									lcChosen=true;
+									cell.tLearnState=true;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			if(buPredicted==false){
+				for(Cell cell : col.cells){
+					cell.tActiveState=true;
+				}
+			}
+			
+			if(lcChosen==false){
+				Cell bestMatchingCell = col.getBestMatchingCell();
+				bestMatchingCell.tLearnState=true;
+			}
+		}
+	}
+	
 	public void print(int t){
 		//System.out.print(output.size());
 		if(t>output.size()-1){
@@ -204,7 +241,7 @@ public class Region {
 			htmRegion.setNeighbor(neighborMap, htmRegion.averageReceptiveFieldSize());
 			
 			//Temporal Pooling
-			
+			htmRegion.setCellActiveState();
 			
 			System.out.print(" t="+time+";\n");
 		}
@@ -212,5 +249,7 @@ public class Region {
 		System.out.print("finish");
 
 	}
+
+	
 
 }
