@@ -154,14 +154,14 @@ public class Column {
 		double size=0;
 		for(Synapse s : proxSegment.synapses){
 			if(s.isConnected()){
-				double dist=(s.destCoor[0]-rowFactor*posRow)*(s.destCoor[0]-rowFactor*posRow)+
-						(s.destCoor[1]-columnFactor*posColumn)*(s.destCoor[1]-columnFactor*posColumn);
-				//dist=Math.sqrt(dist);
+				double dist=(s.destCoor[0]*rowFactor-posRow)*(s.destCoor[0]*rowFactor-posRow)+
+						(s.destCoor[1]*columnFactor-posColumn)*(s.destCoor[1]*columnFactor-posColumn);
+				dist=Math.sqrt(dist);
 				if(dist>size) size=dist;
 			}
 		}
 		//System.out.print(size);
-		return Math.sqrt(size);
+		return size;
 	}
 	
 	public String toString(){

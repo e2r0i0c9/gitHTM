@@ -64,8 +64,8 @@ public class Region {
 	}
 	
 	public int averageReceptiveFieldSize(){
-		double rowFactor = (double)inputRegion.row/row;
-		double columnFactor = (double)inputRegion.column/column;
+		double rowFactor = (double)row/inputRegion.row;
+		double columnFactor = (double)column/inputRegion.column;
 		double[][] receptiveFieldSize = new double[row][column];
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
@@ -83,7 +83,7 @@ public class Region {
 		}
 		average/=row;
 		
-		//System.out.print(average);
+		//System.out.print((int)average);
 		
 		return (int)average;
 	}
@@ -195,12 +195,16 @@ public class Region {
 			if(time==100){
 				System.out.print("!");
 			}
+			//Spatial Pooling
 			htmRegion.timeStep=time;
 			htmRegion.overlap();
 			htmRegion.inhibition();
 			htmRegion.spatialLearning();
-			//Major time cost!!!
+			//Adding too many(2000+) neighbor per column is the major time cost
 			htmRegion.setNeighbor(neighborMap, htmRegion.averageReceptiveFieldSize());
+			
+			//Temporal Pooling
+			
 			
 			System.out.print(" t="+time+";\n");
 		}
