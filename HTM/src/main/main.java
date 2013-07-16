@@ -28,7 +28,7 @@ public class main {
 			//Spatial Pooling
 			htmRegion.overlap(input.get(t),t);
 			htmRegion.inhibition();
-			htmRegion.learning(input.get(t),t);
+			htmRegion.spatialLearning(input.get(t),t);
 			//Recalculate inhibition radius
 			int inhibitionRadius = 
 					htmRegion.averageReceptiveFieldSize((double)htmRegion.row/input.row,(double)htmRegion.column/input.column);	

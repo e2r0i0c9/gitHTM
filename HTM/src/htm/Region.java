@@ -8,7 +8,8 @@ public class Region {
 	static final int ReceptiveFieldRadius=10;
 	static final int DefaultInhibitionRadius=10;
 	
-	
+	public Region inputRegion;
+	boolean[][] inputMatrix;
 	public int row;
 	public int column;
 	public Column[][] columns;
@@ -16,11 +17,17 @@ public class Region {
 	public ArrayList<ArrayList<int[]>> output = new ArrayList<ArrayList<int[]>>();
 	public ArrayList<SegmentUpdate> SegmentUpdateList;
 	
+	public int timeStep=0;
 	
-	public void overlap(boolean[][] input,int t){
+	
+	public void overlap(){
+		inputMatrix=new boolean[inputRegion.row][inputRegion.column];
+		for(int[] coor : inputRegion.output.get(timeStep)){
+			inputMatrix[coor[0]][coor[1]]=true;
+		}
 		for(int i=0;i<row;i++){
 			for(int j=0;j<column;j++){
-				columns[i][j].calculateOverlap(input,t);
+				columns[i][j].calculateOverlap(inputMatrix,timeStep);
 			}
 		}
 	}
@@ -29,39 +36,40 @@ public class Region {
 		activeColumns=new ArrayList<Column>();
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
-				if(columns[r][c].activated()){
+				if(columns[r][c].isActive(timeStep)){
 					activeColumns.add(columns[r][c]);
 				}
 			}
 		}
 	}
 	
-	public void learning(boolean[][] input,int t){
+	public void spatialLearning(){
 		if(activeColumns.size()>0){
 			for(Column c : activeColumns){
 				if(c.overlap!=0){
-					for(Synapse s : c.ReceptiveField){
-						if(input[s.destCoor[0]][s.destCoor[1]]) s.permanenceInc();
+					for(Synapse s : c.proxSegment.synapses){
+						if(inputMatrix[s.destCoor[0]][s.destCoor[1]]) s.permanenceInc();
 						else s.permanenceDec();
 					}
 				}
 			}
 		}
 		
-		
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
-				columns[r][c].adjustBoost(t);
+				columns[r][c].adjustBoost(timeStep);
 			}
 		}
 		
 	}
 	
-	public int averageReceptiveFieldSize(double rowFactor, double columnFactor){
+	public int averageReceptiveFieldSize(){
+		double rowFactor = (double)inputRegion.row/row;
+		double columnFactor = (double)inputRegion.column/column;
 		double[][] receptiveFieldSize = new double[row][column];
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
-				receptiveFieldSize[r][c]=columns[r][c].connectedReceptiveSize(rowFactor, columnFactor);
+				receptiveFieldSize[r][c]=columns[r][c].connectedRFSize(rowFactor, columnFactor);
 			}
 		}
 		double average=0;
@@ -75,6 +83,8 @@ public class Region {
 		}
 		average/=row;
 		
+		//System.out.print(average);
+		
 		return (int)average;
 	}
 	
@@ -82,7 +92,7 @@ public class Region {
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
 				//initiate neighbor
-				this.columns[r][c].addNeighbor(this,neighborMap.get().get(Radius));
+				this.columns[r][c].setNeighbor(this,neighborMap.get().get(Radius));
 			}
 		}
 	}
@@ -126,7 +136,8 @@ public class Region {
 		}
 	}
 	
-	public Region(int m,int n,Region inputRegion, NeighborMap neighborMap){ 
+	public Region(int m,int n,Region input, NeighborMap neighborMap){ 
+		this.inputRegion=input;
 		this.row=m;
 		this.column=n;
 		//get a m*n array with null in it
@@ -136,20 +147,17 @@ public class Region {
 			for(int c=0;c<column;c++){
 				this.columns[r][c] = new Column(r,c,this,DefaultInhibitionRadius);
 				//add synapses with a bias towards natural center
-				Double RFCenterRow=(double) (r*inputRegion.row/row);
-				Double RFCenterColumn=(double) (c*inputRegion.column/column);
-				for(int ir=0;ir<inputRegion.row;ir++){//ir input row, ic input column
-					for(int ic=0;ic<inputRegion.column;ic++){
+				Double RFCenterRow=(double) (r*input.row/row);
+				Double RFCenterColumn=(double) (c*input.column/column);
+				for(int ir=0;ir<input.row;ir++){//ir input row, ic input column
+					for(int ic=0;ic<input.column;ic++){
 						double dist = 0.2*Math.sqrt((ir-RFCenterRow)*(ir-RFCenterRow)+(ic-RFCenterColumn)*(ic-RFCenterColumn)+0.01);
 						double bias=Math.exp(-1*dist);
 						if(bias>Math.random()){
-							this.columns[r][c].proSegment.addSynapse(inputRegion,ir,ic,bias);
+							this.columns[r][c].proxSegment.addSynapse(input,ir,ic,bias);
 						}
 					}
 				}
-				
-				
-				
 				/*
 				int top = Math.max(RFCenterRow.intValue(),0);
 				int bottom = Math.min(top+2*ReceptiveFieldRadius,input.row-1);
@@ -172,16 +180,30 @@ public class Region {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		int time = 200;
+		int totalTime = 120;
 		//Initialize input region
-		Region inputRegion = new Region(100,150,time);
+		Region inputRegion = new Region(100,150,totalTime);
 		//print region output at specific time stamp
 		//inputRegion.print(142);
 		
-		NeighborMap neighborMap = new NeighborMap(30);
+		NeighborMap neighborMap = new NeighborMap(40);
 		//Initialize HTM region
-		Region region = new Region(50,50,inputRegion,neighborMap);
 		
+		Region htmRegion = new Region(50,50,inputRegion,neighborMap);
+		
+		for(int time=0; time<totalTime; time++){
+			if(time==100){
+				System.out.print("!");
+			}
+			htmRegion.timeStep=time;
+			htmRegion.overlap();
+			htmRegion.inhibition();
+			htmRegion.spatialLearning();
+			//Major time cost!!!
+			htmRegion.setNeighbor(neighborMap, htmRegion.averageReceptiveFieldSize());
+			
+			System.out.print(" t="+time+";\n");
+		}
 		
 		System.out.print("finish");
 

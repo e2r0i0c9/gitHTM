@@ -9,9 +9,10 @@ public class Column {
 	static final int Layer=5;
 	static final int MinOverlap=2;
 	static final double MinOverlapRatio=0.005;
-	static final double DesiredLocalActivity=0.05;
-	static final double ActiveDutyCycleFraction=1.0;
-	static final double OverlapDutyCycleFraction=1.0;
+	static final double DesiredLocalActivityRatio=0.05;
+	static final int DesiredLocalActivity=10;
+	static final double ActiveDutyCycleFraction=0.5;
+	static final double OverlapDutyCycleFraction=0.5;
 	static final int DutyCycle=100;
 	static final double BoostStep=2.0;
 	
@@ -19,22 +20,22 @@ public class Column {
 	public int posColumn;
 	public Region region;
 	public Cell[] cells=new Cell[Layer];
-	public Segment proSegment=new Segment();
+	public Segment proxSegment=new Segment();
 	public double boost=1.0;
 	public int overlap=0;
 	public ArrayList<Column> neighbor= new ArrayList<Column>();
 	public LinkedList<Integer> activeQueue = new LinkedList<Integer>();
-	public boolean activate;
+	public boolean active;
 	public LinkedList<Integer> overlapQueue=new LinkedList<Integer>();
 	public int inhibitionRadius;
 	
 	
-	public void addNeighbor(Region region,ArrayList<int[]> neighborCoor){
+	public void setNeighbor(Region region,ArrayList<int[]> neighborCoor){
 		this.neighbor = new ArrayList<Column>();
 		for(int[] coor : neighborCoor){
 			int r = Math.max(Math.min(region.row-1,posRow+coor[0]),0);
 			int c = Math.max(Math.min(region.column-1,posColumn+coor[1]),0);		
-			if(!this.neighbor.contains(region.columns[r][c]) && !(r==posRow && c==posColumn))
+			if(!(r==posRow && c==posColumn))
 					this.neighbor.add(region.columns[r][c]);
 		}
 	}
@@ -42,21 +43,20 @@ public class Column {
 	public void calculateOverlap(boolean[][] input, int t){
 		//!!!!!reset those values here or at the end of temporal pooling
 		overlap=0;
-		activate=false;
-		for(Synapse s : ReceptiveField){
-			if(s.isValid() && input[s.destCoor[0]][s.destCoor[1]]){
-				overlap+=1;							
+		active=false;
+		for(Synapse s : proxSegment.synapses){
+			if(s.isConnected() && input[s.destCoor[0]][s.destCoor[1]]){
+				overlap+=1;					
 			}
 		}
-		//if(overlap<MinOverlap){
-		//System.out.print((int)ReceptiveField.size()*MinOverlapRatio);
-		if(overlap >= (int)ReceptiveField.size()*MinOverlapRatio){
+		//if(overlap >= (int)ReceptiveField.size()*MinOverlapRatio){
+		if(overlap >= MinOverlap){
 			overlap=(int)(overlap*boost);
 			overlapQueue.offer(t);
-		}else if(overlap>0) overlap=-1;
+		}else if(overlap>0) overlap=-1;//special tag for below threshold overlap
 	}
 
-	public boolean activated(){
+	public boolean isActive(int t){
 		//this function finds out whether the overlap score of this column 
 		//is among the top DesiredLocalActivity-percent of its neighbor
 		//if it is set it active, if not remain inactive
@@ -70,17 +70,20 @@ public class Column {
 				}
 				else if(c.overlap == this.overlap) tie++;
 			}
-			int maxLocalRank= (int) Math.round(neighbor.size()*DesiredLocalActivity);
+			int maxLocalRank= DesiredLocalActivity;
+			//int maxLocalRank= (int) Math.round(neighbor.size()*DesiredLocalActivityRatio);
 			//test display
 			//System.out.print(maxLocalRank);
 			//System.out.print("["+this.posRow+","+this.posColumn+"];");
 			
 			if(ahead+tie<=maxLocalRank){
-				activate=true;
+				active=true;
+				activeQueue.offer(t);
 				return true;
 			}else if(ahead<maxLocalRank){
 				if(Math.random()<(double)1/tie){
-					activate=true;
+					active=true;
+					activeQueue.offer(t);
 					return true;
 				}
 			}
@@ -88,7 +91,7 @@ public class Column {
 		return false;
 	}
 	
-	private int maxDutyCycle(){
+	private int maxActiveDutyCycle(){
 		int max=0;
 		for(Column c : neighbor){
 			if(c.activeQueue.size()>max){
@@ -109,45 +112,62 @@ public class Column {
 	}
 	
 	public void adjustBoost(int t){
-		//Boost Column overlap
-		//update activeQueue
-		int minActiveDutyCycle = (int)ActiveDutyCycleFraction*this.maxDutyCycle();
-		if(t>DutyCycle && activeQueue.size()>0 && activeQueue.get(0)<t-DutyCycle) activeQueue.poll();
-		if (activate) activeQueue.offer(t);
-		//boost overlap value
-		if (activeQueue.size() >= minActiveDutyCycle) this.boost=1.0;
-		else if(overlap!=0) boost+=(minActiveDutyCycle-activeQueue.size())/minActiveDutyCycle*BoostStep;
-		
-		//Boost  permanence
-		//update overlapQueue
-		int minOverlapDutyCycle=(int)OverlapDutyCycleFraction*this.maxOverlapDutyCycle();
-		if(t>DutyCycle && overlapQueue.size()>0 && overlapQueue.get(0)<t-DutyCycle) overlapQueue.poll();
-		//boost all synapses in the receptive field
-		if(overlapQueue.size() < minOverlapDutyCycle){
-			for(Synapse s : ReceptiveField){
-				s.increasePermanence();
+		//after 100 iteration
+		if(t > DutyCycle){
+			//Boost Column overlap
+			double minActiveDutyCycle = ActiveDutyCycleFraction*this.maxActiveDutyCycle();
+			/*
+			//Test display
+			System.out.print(maxActiveDutyCycle()+",");
+			if(minActiveDutyCycle>0){
+				System.out.print("-"+minActiveDutyCycle+"-");
+			}
+			*/
+			//update activeQueue
+			if(activeQueue.size()>0 && activeQueue.get(0)<t-DutyCycle) activeQueue.poll();
+			//boost overlap value
+			if (activeQueue.size() >= minActiveDutyCycle) this.boost=1.0;
+			else if(overlap!=0) boost+=(minActiveDutyCycle-activeQueue.size())/minActiveDutyCycle*BoostStep;
+			
+			//Boost  permanence
+			//update overlapQueue
+			double minOverlapDutyCycle=OverlapDutyCycleFraction*maxOverlapDutyCycle();
+			/*
+			//test Display
+			System.out.print(maxOverlapDutyCycle()+";");
+			if(minOverlapDutyCycle>0){
+				System.out.print("("+minOverlapDutyCycle+")");
+			}
+			*/
+			if(overlapQueue.size()>0 && overlapQueue.get(0)<t-DutyCycle) overlapQueue.poll();
+			//boost all synapses in the receptive field
+			if(overlap!=0 && overlapQueue.size() < minOverlapDutyCycle){
+				for(Synapse s : proxSegment.synapses){
+					s.boostPermanence();
+				}
 			}
 		}
+		
 	}
 
-	public double connectedReceptiveSize(double rowFactor, double columnFactor){
+	public double connectedRFSize(double rowFactor, double columnFactor){
 		double size=0;
-		for(Synapse s : ReceptiveField){
-			if(s.isValid()){
-				double dist=(s.destCoor[0]*rowFactor-posRow)*(s.destCoor[0]*rowFactor-posRow)+
-						(s.destCoor[1]*columnFactor-posColumn)*(s.destCoor[1]*columnFactor-posColumn);
-				dist=Math.sqrt(dist);
+		for(Synapse s : proxSegment.synapses){
+			if(s.isConnected()){
+				double dist=(s.destCoor[0]-rowFactor*posRow)*(s.destCoor[0]-rowFactor*posRow)+
+						(s.destCoor[1]-columnFactor*posColumn)*(s.destCoor[1]-columnFactor*posColumn);
+				//dist=Math.sqrt(dist);
 				if(dist>size) size=dist;
 			}
 		}
 		//System.out.print(size);
-		return size;
+		return Math.sqrt(size);
 	}
 	
 	public String toString(){
 		String output="\n";
 		output+="["+posRow+", "+posColumn+"]";
-		if(activate) output+="\tActive\n";
+		if(active) output+="\tActive\n";
 		else output+="\tInactive\n";
 		output+="ovelapCycle: ";
 		for(int i=0;i<overlapQueue.size();i++){
@@ -160,12 +180,12 @@ public class Column {
 		output+="\n";
 		//receptive field
 		
-		output+="Receptive Field size: "+proSegment.synapses.size()+"\n";
-		int row=100;
-		int column=150;
+		output+="Receptive Field size: "+proxSegment.synapses.size()+"\n";
+		int row=region.inputRegion.row;
+		int column=region.inputRegion.column;
 		boolean[][] outputMatrix=new boolean[row][column];
 		int countConnectedSynapses=0;
-		for(Synapse s: proSegment.synapses){
+		for(Synapse s: proxSegment.synapses){
 			//print only connected Synapses
 			if(s.isConnected()){
 				outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
@@ -175,6 +195,8 @@ public class Column {
 			//outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
 		}
 		output+="Connected Synapses: "+countConnectedSynapses+"\n";
+		/*
+		//print out all synapses
 		for(int i=0; i< row;i++){
 			for(int j=0; j< column; j++){
 				if(outputMatrix[i][j]==true)output+="1";
@@ -182,18 +204,22 @@ public class Column {
 			}
 			output+="\n";
 		}
-		/*
-		for(Synapse s : proSegment.synapses){
-			output += "("+s.destCoor[0]+",";
-			output += s.destCoor[1]+"),";
-		}
 		*/
 		
-		/*
 		//Neighbor
-		output+="\nNeighbor size: "+neighbor.size()+"\n";
+		output+="Neighbor size: "+neighbor.size()+"\n";
+		/*
+		//print out all neighbor
+		boolean[][] neighborMatrix=new boolean[region.row][region.column];
 		for(Column c : neighbor){
-			output += "("+c.posRow+","+c.posColumn+"),";
+			neighborMatrix[c.posRow][c.posColumn]=true;
+		}
+		for(int i=0; i< region.row;i++){
+			for(int j=0; j< region.column; j++){
+				if(neighborMatrix[i][j]==true)output+="1";
+				else output+="0";
+			}
+			output+="\n";
 		}
 		*/
 		return(output);

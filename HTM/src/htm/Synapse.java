@@ -34,13 +34,13 @@ public class Synapse {
 		permanence=(float) Math.max(0.0,permanence);
 	}
 	
-	public void increasePermanence(){
+	public void boostPermanence(){
 		permanence+=(connectedPerm*PermBoostFactor);
 		permanence=(float) Math.min(1.0,permanence);
 	}
 	
 	public String toString(){
-		return ("["+destCoor[0]+", "+destCoor[1]+"]"+permanence);
+		return ("["+destCoor[0]+", "+destCoor[1]+destCoor[2]+"]"+permanence);
 	}
 	
 	public Synapse(int r, int c){
