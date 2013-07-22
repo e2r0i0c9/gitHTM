@@ -43,7 +43,7 @@ public class Column {
 	}
 	
 	public void calculateOverlap(boolean[][] input, int t){
-		//!!!!!reset those values here or at the end of temporal pooling
+		//reset
 		overlap=0;
 		active=false;
 		for(Synapse s : proxSegment.synapses){
@@ -53,7 +53,7 @@ public class Column {
 		}
 		//if(overlap >= (int)ReceptiveField.size()*MinOverlapRatio){
 		if(overlap >= MinOverlap){
-			overlap=(int)(overlap*boost);
+			overlap = (int)(overlap*boost);
 			overlapQueue.offer(t);
 		}else if(overlap>0) overlap=-1;//special tag for below threshold overlap
 	}
@@ -78,12 +78,12 @@ public class Column {
 			//System.out.print(maxLocalRank);
 			//System.out.print("["+this.posRow+","+this.posColumn+"];");
 			
-			if(ahead+tie<=maxLocalRank){
+			if(ahead+tie <= maxLocalRank){
 				active=true;
 				activeQueue.offer(t);
 				return true;
-			}else if(ahead<maxLocalRank){
-				if(Math.random()<(double)1/tie){
+			}else if(ahead < maxLocalRank){
+				if(Math.random() < (double)1/tie){
 					active=true;
 					activeQueue.offer(t);
 					return true;
@@ -96,7 +96,7 @@ public class Column {
 	private int maxActiveDutyCycle(){
 		int max=0;
 		for(Column c : neighbor){
-			if(c.activeQueue.size()>max){
+			if(c.activeQueue.size() > max){
 				max=c.activeQueue.size();
 			}
 		}
@@ -113,6 +113,17 @@ public class Column {
 		return max;
 	}
 	
+	private int grandOverlap(){
+		//calculate overlap for all synapses in the receptive field
+		int grandOverlap=0;
+		for(Synapse s : proxSegment.synapses){
+			if(region.inputMatrix[s.destCoor[0]][s.destCoor[1]]){
+				grandOverlap+=1;					
+			}
+		}
+		return grandOverlap;
+	}
+	
 	public void adjustBoost(int t){
 		//after 100 iteration
 		if(t > DutyCycle){
@@ -126,10 +137,10 @@ public class Column {
 			}
 			*/
 			//update activeQueue
-			if(activeQueue.size()>0 && activeQueue.get(0)<t-DutyCycle) activeQueue.poll();
+			if(activeQueue.size() > 0 && activeQueue.get(0) < t-DutyCycle) activeQueue.poll();
 			//boost overlap value
 			if (activeQueue.size() >= minActiveDutyCycle) this.boost=1.0;
-			else if(overlap!=0) boost+=(minActiveDutyCycle-activeQueue.size())/minActiveDutyCycle*BoostStep;
+			else if(overlap!=0) boost += (minActiveDutyCycle-activeQueue.size())/minActiveDutyCycle*BoostStep;
 			
 			//Boost  permanence
 			//update overlapQueue
@@ -141,9 +152,9 @@ public class Column {
 				System.out.print("("+minOverlapDutyCycle+")");
 			}
 			*/
-			if(overlapQueue.size()>0 && overlapQueue.get(0)<t-DutyCycle) overlapQueue.poll();
+			if(overlapQueue.size() > 0 && overlapQueue.get(0) < t-DutyCycle) overlapQueue.poll();
 			//boost all synapses in the receptive field
-			if(overlap!=0 && overlapQueue.size() < minOverlapDutyCycle){
+			if(grandOverlap()>0 && overlapQueue.size() < minOverlapDutyCycle){
 				for(Synapse s : proxSegment.synapses){
 					s.boostPermanence();
 				}
@@ -173,23 +184,25 @@ public class Column {
 		boolean found=false;
 		for(Cell cell : cells){
 			int count=0;
-			for(Segment seg : cell.distSegments){
-				for(Synapse s : seg.synapses){
-					if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true){
-						count++;
+			if(cell.distSegments.size()>0){
+				for(Segment seg : cell.distSegments){
+					for(Synapse s : seg.synapses){
+						if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true){
+							count++;
+						}
 					}
-				}
-				if(count>max){
-					found=true;
-					max=count;
-					bestMatchingSegment=seg;
-					bestMatchingCell=cell;
+					if(count>max){
+						found=true;
+						max=count;
+						bestMatchingSegment=seg;
+						bestMatchingCell=cell;
+					}
 				}
 			}	
 		}
 		
 		if(found){
-			region.SegmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, region)));
+			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, region)));
 		}else{
 			int min = cells[0].distSegments.size();
 			bestMatchingCell=cells[0];
@@ -201,7 +214,7 @@ public class Column {
 			}
 			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, region);
 			bestMatchingCell.distSegments.add(bestMatchingSegment);
-			region.SegmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
+			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
 		}
 		return bestMatchingCell;
 	}
@@ -273,6 +286,9 @@ public class Column {
 		posColumn=c;
 		region=re;
 		inhibitionRadius=i;
+		for(int j=0; j<Layer; j++){
+			cells[j]=new Cell();
+		}
 	}
 
 	/**

@@ -15,16 +15,14 @@ public class Region {
 	public Column[][] columns;
 	public ArrayList<Column> activeColumns=new ArrayList<Column>();
 	public ArrayList<ArrayList<int[]>> output = new ArrayList<ArrayList<int[]>>();
-	public ArrayList<SegmentUpdate> SegmentUpdateList;
+	
 	
 	public int timeStep=0;
 	
 	
-	public void overlap(){
-		inputMatrix=new boolean[inputRegion.row][inputRegion.column];
-		for(int[] coor : inputRegion.output.get(timeStep)){
-			inputMatrix[coor[0]][coor[1]]=true;
-		}
+	public void overlap(boolean[][] input){
+		inputMatrix=input;
+		//calculate overlap
 		for(int i=0;i<row;i++){
 			for(int j=0;j<column;j++){
 				columns[i][j].calculateOverlap(inputMatrix,timeStep);
@@ -60,7 +58,6 @@ public class Region {
 				columns[r][c].adjustBoost(timeStep);
 			}
 		}
-		
 	}
 	
 	public int averageReceptiveFieldSize(){
@@ -134,7 +131,34 @@ public class Region {
 		}
 	}
 	
-	public void print(int t){
+	public void calculatePredictiveState(){
+		for(int r=0; r<row;r++){
+			for(int c=0; c<column; c++){
+				for(Cell cell: columns[r][c].cells){
+					cell.calculatePredictiveState(this);
+				}
+			}
+		}
+	}
+	
+	public void temporalLearning(){
+		for(int r=0; r<row;r++){
+			for(int c=0; c<column; c++){
+				for(Cell cell: columns[r][c].cells){
+					//cell.temporalLearning();
+					if(cell.tLearnState==true){
+						
+					}
+					else if(){
+						
+					}
+				}
+			}
+		}
+	}
+	
+  
+ 	public void print(int t){
 		//System.out.print(output.size());
 		if(t>output.size()-1){
 			System.out.print("There are only "+output.size()+" input time step");
@@ -213,9 +237,6 @@ public class Region {
 		this.setNeighbor(neighborMap, DefaultInhibitionRadius);
 	}
 
-	/**
-	 * @param args
-	 */
 	public static void main(String[] args) {
 		int totalTime = 120;
 		//Initialize input region
@@ -232,9 +253,16 @@ public class Region {
 			if(time==100){
 				System.out.print("!");
 			}
-			//Spatial Pooling
+				
 			htmRegion.timeStep=time;
-			htmRegion.overlap();
+			//restore 2D array input
+			boolean[][] input=new boolean[inputRegion.row][inputRegion.column];
+			for(int[] coor : inputRegion.output.get(time)){
+				input[coor[0]][coor[1]]=true;
+			}
+			
+			//Spatial Pooling
+			htmRegion.overlap(input);
 			htmRegion.inhibition();
 			htmRegion.spatialLearning();
 			//Adding too many(2000+) neighbor per column is the major time cost
@@ -242,6 +270,8 @@ public class Region {
 			
 			//Temporal Pooling
 			htmRegion.setCellActiveState();
+			htmRegion.calculatePredictiveState();
+			//htmRegion.temporalLearning();
 			
 			System.out.print(" t="+time+";\n");
 		}

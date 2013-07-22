@@ -5,7 +5,7 @@ public class Synapse {
 	static final double initialRange = 0.3;
 	static final float permanenceIncStep = connectedPerm/11;
 	static final float permanenceDecStep = connectedPerm/11;
-	static final double PermBoostFactor=0.2;
+	static final double PermBoostFactor=0.1;
 	
 	
 	
@@ -36,8 +36,8 @@ public class Synapse {
 	}
 	
 	public void boostPermanence(){
-		permanence+=(connectedPerm*PermBoostFactor);
-		permanence=(float) Math.min(1.0,permanence);
+		permanence += connectedPerm*PermBoostFactor;
+		permanence = (float) Math.min(1.0,permanence);
 	}
 	
 	public String toString(){
@@ -57,7 +57,7 @@ public class Synapse {
 		this.destCoor[0]=r;
 		this.destCoor[1]=c;
 		//bias
-		this.permanence=(float)((1-initialRange*0.6+(Math.random()+Math.random()*bias)*initialRange)*connectedPerm);
+		this.permanence=(float)((1-initialRange*0.75+(Math.random()+Math.random()*bias)*initialRange)*connectedPerm);
 		
 		
 		//non bias

@@ -9,6 +9,7 @@ public class SegmentUpdate {
 	public SegmentUpdate(Segment segment,ArrayList<Synapse> synapses) {
 		updateSynapsesList=synapses;
 		updateSegment=segment;
+		updateSegment.sequenceSegment=true;
 	}
 
 	/**
