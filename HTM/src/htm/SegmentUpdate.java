@@ -3,8 +3,9 @@ package htm;
 import java.util.ArrayList;
 
 public class SegmentUpdate {
-	public ArrayList<Synapse> updateSynapsesList;
 	public Segment updateSegment;
+	//positive reinforce synapses
+	public ArrayList<Synapse> updateSynapsesList;
 
 	public SegmentUpdate(Segment segment,ArrayList<Synapse> synapses) {
 		updateSynapsesList=synapses;

@@ -9,6 +9,7 @@ public class Segment {
 	
 	//add a parent but it can be a cell or a column, how to solve this?
 	public ArrayList<Synapse> synapses = new ArrayList<Synapse>();
+	
 	public boolean sequenceSegment=false;
 	
 	public boolean pActiveState=false;
@@ -20,8 +21,8 @@ public class Segment {
 	}
 
 	public boolean segmentActive(boolean activeState) {
-		int count=0;
-		if(activeState==true){
+		int count = 0;
+		if(activeState == true){
 			for(Synapse s : synapses){
 				if(s.isConnected() && s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true){
 					count++;
@@ -37,7 +38,6 @@ public class Segment {
 			}
 			if(count>ActivationThreshold)return true;
 		}
-		
 		return false;
 	}
 
@@ -46,7 +46,7 @@ public class Segment {
 		for(int i=0; i<destRegion.row;i++){
 			for(int j=0; j<destRegion.column; j++){
 				for(int k=0; k<destRegion.columns[i][j].cells.length; k++){
-					if(destRegion.columns[i][j].cells[k].pLearnState==true){
+					if(destRegion.columns[i][j].cells[k].pLearnState == true){
 						newSynapses.add(new Synapse(destRegion,i,j,k));
 					}
 				}
@@ -54,27 +54,36 @@ public class Segment {
 		}
 		return newSynapses;
 	}
-	public ArrayList<Synapse> getActiveSynapses(boolean newSynapses, Region destRegion){
+	
+	public ArrayList<Synapse> getActiveSynapses(boolean addNewSynapses, Region destRegion, boolean t){
 		ArrayList<Synapse> activeSynapses = new ArrayList<Synapse>();
 		if(synapses.size()>0){
-			for(Synapse s : synapses){
-				if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true)activeSynapses.add(s);
+			if(t){
+				for(Synapse s : synapses){
+					if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].tActiveState==true)activeSynapses.add(s);
+				}
+			}else{//t-1 previous time step
+				for(Synapse s : synapses){
+					if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true)activeSynapses.add(s);
+				}
 			}
 		}
-		if(newSynapses && NewSynapseCount > activeSynapses.size()){
+		if(addNewSynapses && NewSynapseCount > activeSynapses.size()){
 			ArrayList<Synapse> newSynapsesSpace = newSynapsesSpace(destRegion);
-			if(newSynapsesSpace.size()>0){
-				double threshold = (double) (NewSynapseCount - activeSynapses.size())/activeSynapses.size();
-				for(Synapse s :newSynapsesSpace){
-					if(!activeSynapses.contains(s) && Math.random()<threshold){
-						activeSynapses.add(s);
+			if(newSynapsesSpace.size() > 0){
+				if(newSynapsesSpace.size()+activeSynapses.size() <= NewSynapseCount)activeSynapses.addAll(newSynapsesSpace);
+				else{
+					double threshold = (double) (NewSynapseCount - activeSynapses.size())/newSynapsesSpace.size();
+					for(Synapse s : newSynapsesSpace){
+						if(!activeSynapses.contains(s) && Math.random()<threshold){
+							activeSynapses.add(s);
+						}
 					}
 				}
 			}else{
 				System.out.println("WARNING:no cell in learnState!!!");
 			}
 		}
-		
 		return activeSynapses;
 		
 	}

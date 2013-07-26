@@ -20,16 +20,17 @@ public class Column {
 	
 	public int posRow;
 	public int posColumn;
-	public Region region;
+	public Region parentRegion;
 	public Cell[] cells=new Cell[Layer];
 	public Segment proxSegment=new Segment();
-	public double boost=1.0;
-	public int overlap=0;
 	public ArrayList<Column> neighbor= new ArrayList<Column>();
+	public int overlap=0;
 	public LinkedList<Integer> activeQueue = new LinkedList<Integer>();
 	public boolean active;
 	public LinkedList<Integer> overlapQueue=new LinkedList<Integer>();
-	public int inhibitionRadius;
+	
+	public double boost=1.0;
+	//public int inhibitionRadius;
 	
 	
 	public void setNeighbor(Region region,ArrayList<int[]> neighborCoor){
@@ -117,7 +118,7 @@ public class Column {
 		//calculate overlap for all synapses in the receptive field
 		int grandOverlap=0;
 		for(Synapse s : proxSegment.synapses){
-			if(region.inputMatrix[s.destCoor[0]][s.destCoor[1]]){
+			if(parentRegion.inputMatrix[s.destCoor[0]][s.destCoor[1]]){
 				grandOverlap+=1;					
 			}
 		}
@@ -184,10 +185,10 @@ public class Column {
 		boolean found=false;
 		for(Cell cell : cells){
 			int count=0;
-			if(cell.distSegments.size()>0){
+			if(cell.distSegments.size() > 0){
 				for(Segment seg : cell.distSegments){
 					for(Synapse s : seg.synapses){
-						if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState==true){
+						if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState == true){
 							count++;
 						}
 					}
@@ -202,17 +203,17 @@ public class Column {
 		}
 		
 		if(found){
-			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, region)));
+			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, parentRegion,false)));
 		}else{
 			int min = cells[0].distSegments.size();
 			bestMatchingCell=cells[0];
 			for(Cell cell : cells){
-				if(cell.distSegments.size()<min){
+				if(cell.distSegments.size() < min){
 					min=cell.distSegments.size();
 					bestMatchingCell=cell;
 				}
 			}
-			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, region);
+			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, parentRegion,false);
 			bestMatchingCell.distSegments.add(bestMatchingSegment);
 			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
 		}
@@ -237,8 +238,8 @@ public class Column {
 		//receptive field
 		
 		output+="Receptive Field size: "+proxSegment.synapses.size()+"\n";
-		int row=region.inputRegion.row;
-		int column=region.inputRegion.column;
+		int row=parentRegion.inputRegion.row;
+		int column=parentRegion.inputRegion.column;
 		boolean[][] outputMatrix=new boolean[row][column];
 		int countConnectedSynapses=0;
 		for(Synapse s: proxSegment.synapses){
@@ -281,11 +282,11 @@ public class Column {
 		return(output);
 	}
 	
-	public Column(int r,int c,Region re,int i){
+	public Column(int r,int c,Region re){
 		posRow=r;
 		posColumn=c;
-		region=re;
-		inhibitionRadius=i;
+		parentRegion=re;
+		//inhibitionRadius=i;
 		for(int j=0; j<Layer; j++){
 			cells[j]=new Cell();
 		}

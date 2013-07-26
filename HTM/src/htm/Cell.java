@@ -6,6 +6,7 @@ public class Cell {
 	public Column parent;
 	public ArrayList<Segment> distSegments=new ArrayList<Segment>();
 	public ArrayList<SegmentUpdate> segmentUpdates=new ArrayList<SegmentUpdate>();
+	
 	public boolean pPredictiveState=false;
 	public boolean tPredictiveState=false;
 	public boolean pActiveState=false;
@@ -25,7 +26,7 @@ public class Cell {
 	
 	public Segment getBestMatchingSegment() {
 		boolean found=false;
-		Segment bestMatchingSegment=new Segment();
+		Segment bestMatchingSegment = new Segment();
 		int max=0,count=0;
 		if(distSegments.size()>0){
 			for(Segment seg : distSegments){
@@ -43,22 +44,24 @@ public class Cell {
 		}
 		if(found==true)return bestMatchingSegment;
 		else return null;
-		
 	}
 	
 	public void calculatePredictiveState(Region destRegion){
 		if(distSegments.size()>0){
 			for(Segment seg : distSegments){
-				if(seg.tActiveState==true){
+				if(seg.tActiveState == true){
 					tPredictiveState=true;
-					
+					//update active synapses
+					segmentUpdateList.add(new SegmentUpdate(seg,seg.getActiveSynapses(false,null,true)));
+					//update a segment that could have predict this activation
 					Segment bestMatchingSegment = this.getBestMatchingSegment();
-					if(bestMatchingSegment!=null){
-						segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, destRegion)));
+					if(bestMatchingSegment != null){
+						segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, destRegion,false)));
 					}else{
-						bestMatchingSegment=new Segment();
-						bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, destRegion);
+						bestMatchingSegment = new Segment();
+						bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, destRegion,false);
 						distSegments.add(bestMatchingSegment);
+						segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
 					}
 				}
 			}
@@ -67,20 +70,27 @@ public class Cell {
 	
 	public void adaptSegments(boolean positiveReinforcement){
 		if(segmentUpdateList.size()>0){
-			for(SegmentUpdate sUpdate :segmentUpdateList){
-				
+			for(SegmentUpdate sUpdate : segmentUpdateList){
+				if(positiveReinforcement){
+					for(Synapse s : sUpdate.updateSynapsesList){
+						s.permanenceInc();
+					}
+					for(Synapse s : sUpdate.updateSegment.synapses){
+						if(!sUpdate.updateSynapsesList.contains(s)){
+							s.permanenceDec();
+						}
+					}
+				}else{
+					for(Synapse s : sUpdate.updateSynapsesList){
+						s.permanenceDec();
+					}
+				}
 			}
+			segmentUpdateList=new ArrayList<SegmentUpdate>();
 		}
 	}
 	
-	public void temporalLearning(){
-		if(tLearnState==true){
-			adaptSegments(true);
-		}
-		else if(){
-			
-		}
-	}
+	
 	public static void main(String[] args) {
 		
 

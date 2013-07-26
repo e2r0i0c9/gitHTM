@@ -16,9 +16,16 @@ public class Region {
 	public ArrayList<Column> activeColumns=new ArrayList<Column>();
 	public ArrayList<ArrayList<int[]>> output = new ArrayList<ArrayList<int[]>>();
 	
-	
 	public int timeStep=0;
 	
+	public void setNeighbor(NeighborMap neighborMap,int Radius){
+		for(int r=0;r<row;r++){
+			for(int c=0;c<column;c++){
+				//initiate neighbor
+				this.columns[r][c].setNeighbor(this,neighborMap.get().get(Radius));
+			}
+		}
+	}
 	
 	public void overlap(boolean[][] input){
 		inputMatrix=input;
@@ -85,32 +92,24 @@ public class Region {
 		return (int)average;
 	}
 	
-	public void setNeighbor(NeighborMap neighborMap,int Radius){
-		for(int r=0;r<row;r++){
-			for(int c=0;c<column;c++){
-				//initiate neighbor
-				this.columns[r][c].setNeighbor(this,neighborMap.get().get(Radius));
-			}
-		}
-	}
 	
 	public void setCellActiveState() {
 		for(Column col : activeColumns){
-			boolean buPredicted=false;
-			boolean lcChosen=false;
+			boolean buPredicted=false;//bottom up predicted
+			boolean lcChosen=false;//learning cell chosen
 			
 			for(Cell cell : col.cells){
-				if(cell.pPredictiveState==true){
+				if(cell.pPredictiveState == true){
 					ArrayList<Segment> activeSegments = cell.getActiveSegments();
-					if(activeSegments.size()>0){
+					if(activeSegments.size() > 0){
 						for(Segment seg : activeSegments){
-							if(seg.sequenceSegment==true){
-								buPredicted=true;
-								cell.tActiveState=true;
+							if(seg.sequenceSegment == true){
+								buPredicted = true;
+								cell.tActiveState = true;
 								//This segment is active due to learning cell?
 								if(seg.segmentActive(false)){
-									lcChosen=true;
-									cell.tLearnState=true;
+									lcChosen = true;
+									cell.tLearnState = true;
 								}
 							}
 						}
@@ -118,13 +117,13 @@ public class Region {
 				}
 			}
 			
-			if(buPredicted==false){
+			if(buPredicted == false){
 				for(Cell cell : col.cells){
 					cell.tActiveState=true;
 				}
 			}
 			
-			if(lcChosen==false){
+			if(lcChosen == false){
 				Cell bestMatchingCell = col.getBestMatchingCell();
 				bestMatchingCell.tLearnState=true;
 			}
@@ -147,10 +146,26 @@ public class Region {
 				for(Cell cell: columns[r][c].cells){
 					//cell.temporalLearning();
 					if(cell.tLearnState==true){
-						
+						cell.adaptSegments(true);
 					}
-					else if(){
-						
+					else if(cell.tPredictiveState == false && cell.pPredictiveState == true){
+						cell.adaptSegments(false);
+					}
+				}
+			}
+		}
+	}
+	
+	private void updateState() {
+		//before go to next time step move every tState to pState and tState to false
+		for(int r=0; r<row;r++){
+			for(int c=0; c<column; c++){
+				for(Cell cell: columns[r][c].cells){
+					cell.pActiveState=cell.tActiveState;
+					cell.pLearnState=cell.tLearnState;
+					cell.pPredictiveState=cell.tPredictiveState;
+					for(Segment seg : cell.distSegments){
+						seg.pActiveState=seg.tActiveState;
 					}
 				}
 			}
@@ -206,7 +221,7 @@ public class Region {
 		//initialize columns and set default neighbors and FIXED Receptive Field space
 		for(int r=0;r<row;r++){
 			for(int c=0;c<column;c++){
-				this.columns[r][c] = new Column(r,c,this,DefaultInhibitionRadius);
+				this.columns[r][c] = new Column(r,c,this);
 				//add synapses with a bias towards natural center
 				Double RFCenterRow=(double) (r*input.row/row);
 				Double RFCenterColumn=(double) (c*input.column/column);
@@ -253,7 +268,7 @@ public class Region {
 			if(time==100){
 				System.out.print("!");
 			}
-				
+			
 			htmRegion.timeStep=time;
 			//restore 2D array input
 			boolean[][] input=new boolean[inputRegion.row][inputRegion.column];
@@ -271,7 +286,9 @@ public class Region {
 			//Temporal Pooling
 			htmRegion.setCellActiveState();
 			htmRegion.calculatePredictiveState();
-			//htmRegion.temporalLearning();
+			htmRegion.temporalLearning();
+			
+			htmRegion.updateState();
 			
 			System.out.print(" t="+time+";\n");
 		}
@@ -279,6 +296,8 @@ public class Region {
 		System.out.print("finish");
 
 	}
+
+	
 
 	
 
