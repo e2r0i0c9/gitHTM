@@ -8,6 +8,11 @@ public class SegmentUpdate {
 	public ArrayList<Synapse> updateSynapsesList;
 
 	public SegmentUpdate(Segment segment,ArrayList<Synapse> synapses) {
+		for(Synapse s : synapses){
+			if(!segment.synapses.contains(s)){
+				segment.synapses.add(s);
+			}
+		}
 		updateSynapsesList=synapses;
 		updateSegment=segment;
 		updateSegment.sequenceSegment=true;

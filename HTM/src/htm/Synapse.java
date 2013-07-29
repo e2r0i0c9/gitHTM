@@ -12,7 +12,7 @@ public class Synapse {
 	public float permanence;
 	public Region destRegion;
 	public int[] destCoor=new int[3];
-	public boolean update=false;
+	public boolean updated=false;
 	
 	
 	public boolean isConnected(){
@@ -41,7 +41,7 @@ public class Synapse {
 	}
 	
 	public String toString(){
-		return ("["+destCoor[0]+", "+destCoor[1]+destCoor[2]+"]"+permanence);
+		return ("["+destCoor[0]+","+destCoor[1]+","+destCoor[2]+"]"+permanence);
 	}
 	
 	public Synapse(Region reg, int r, int c,int l){
@@ -66,9 +66,12 @@ public class Synapse {
 		//this.permanence=(float)(connectedPerm+initialRange/2*connectedPerm+Math.random()*initialRange*connectedPerm);
 	}
 	
-	/**
-	 * @param args
-	 */
+	public Synapse(Synapse s){
+		permanence=s.permanence;
+		destRegion=s.destRegion;
+		destCoor=s.destCoor;
+		//public boolean update=false;
+	}
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 

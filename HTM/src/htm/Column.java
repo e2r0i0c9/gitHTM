@@ -7,16 +7,16 @@ public class Column {
 	//parameters
 	static final int Cycle=100;
 	static final int Layer=5;
-	static final int MinOverlap=2;
+	static final int MinOverlap=3;
 	static final double MinOverlapRatio=0.005;
 	static final double DesiredLocalActivityRatio=0.05;
 	static final int DesiredLocalActivity=10;
-	static final double ActiveDutyCycleFraction=0.5;
-	static final double OverlapDutyCycleFraction=0.5;
+	static final double ActiveDutyCycleFraction=0.3;
+	static final double OverlapDutyCycleFraction=0.3;
 	static final int DutyCycle=100;
 	static final double BoostStep=2.0;
 	//min threshold for to consider a segment as best matching segment
-	static final int MinThreshold=1;
+	static final int MinThreshold=2;
 	
 	public int posRow;
 	public int posColumn;
@@ -203,7 +203,7 @@ public class Column {
 		}
 		
 		if(found){
-			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(true, parentRegion,false)));
+			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.getActiveSynapses(false,true, parentRegion)));
 		}else{
 			int min = cells[0].distSegments.size();
 			bestMatchingCell=cells[0];
@@ -213,9 +213,11 @@ public class Column {
 					bestMatchingCell=cell;
 				}
 			}
-			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(true, parentRegion,false);
-			bestMatchingCell.distSegments.add(bestMatchingSegment);
-			bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
+			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(false,true, parentRegion);
+			if(bestMatchingSegment.synapses.size()>0){
+				bestMatchingCell.distSegments.add(bestMatchingSegment);
+				bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
+			}
 		}
 		return bestMatchingCell;
 	}
@@ -279,6 +281,11 @@ public class Column {
 			output+="\n";
 		}
 		*/
+		for(int i=0; i<Layer;i++){
+			if(cells[i].tLearnState==true){
+				output+="\nLearning Cell "+i+";\n"+cells[i].toString();
+			}
+		}
 		return(output);
 	}
 	

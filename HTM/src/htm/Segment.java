@@ -3,7 +3,7 @@ package htm;
 import java.util.ArrayList;
 
 public class Segment {
-	static final int ActivationThreshold=2;
+	static final int ActivationThreshold=0;
 	static final int NewSynapseCount=50;
 	
 	
@@ -12,11 +12,10 @@ public class Segment {
 	
 	public boolean sequenceSegment=false;
 	
-	public boolean pActiveState=false;
-	public boolean tActiveState=false;
+	public boolean activeState=false;
+	public boolean learnState=false;
 	
-	
-	public void addSynapse(Region input,int ir, int ic,double bias) {
+ 	public void addSynapse(Region input,int ir, int ic,double bias) {
 		synapses.add(new Synapse(input, ir, ic, bias));
 	}
 
@@ -40,25 +39,11 @@ public class Segment {
 		}
 		return false;
 	}
-
-	public ArrayList<Synapse> newSynapsesSpace(Region destRegion){
-		ArrayList<Synapse> newSynapses=new ArrayList<Synapse>();
-		for(int i=0; i<destRegion.row;i++){
-			for(int j=0; j<destRegion.column; j++){
-				for(int k=0; k<destRegion.columns[i][j].cells.length; k++){
-					if(destRegion.columns[i][j].cells[k].pLearnState == true){
-						newSynapses.add(new Synapse(destRegion,i,j,k));
-					}
-				}
-			}
-		}
-		return newSynapses;
-	}
-	
-	public ArrayList<Synapse> getActiveSynapses(boolean addNewSynapses, Region destRegion, boolean t){
+		
+	public ArrayList<Synapse> getActiveSynapses(boolean timeT, boolean addNewSynapses, Region destRegion){
 		ArrayList<Synapse> activeSynapses = new ArrayList<Synapse>();
 		if(synapses.size()>0){
-			if(t){
+			if(timeT){
 				for(Synapse s : synapses){
 					if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].tActiveState==true)activeSynapses.add(s);
 				}
@@ -68,12 +53,22 @@ public class Segment {
 				}
 			}
 		}
+		//System.out.print(activeSynapses.size()+",");
 		if(addNewSynapses && NewSynapseCount > activeSynapses.size()){
-			ArrayList<Synapse> newSynapsesSpace = newSynapsesSpace(destRegion);
-			if(newSynapsesSpace.size() > 0){
+			if(destRegion.newSynapsesSpace.size()==0){
+				destRegion.newSynapsesSpace();
+			}
+			
+			if(destRegion.newSynapsesSpace.size() > 0){
+				//deep clone the list with a construction method in synapse
+				ArrayList<Synapse> newSynapsesSpace=new ArrayList<Synapse>();
+				for(Synapse s : destRegion.newSynapsesSpace){
+					newSynapsesSpace.add(new Synapse(s));
+				}
 				if(newSynapsesSpace.size()+activeSynapses.size() <= NewSynapseCount)activeSynapses.addAll(newSynapsesSpace);
 				else{
 					double threshold = (double) (NewSynapseCount - activeSynapses.size())/newSynapsesSpace.size();
+					//System.out.print("\""+threshold+"\"");
 					for(Synapse s : newSynapsesSpace){
 						if(!activeSynapses.contains(s) && Math.random()<threshold){
 							activeSynapses.add(s);
@@ -84,8 +79,18 @@ public class Segment {
 				System.out.println("WARNING:no cell in learnState!!!");
 			}
 		}
+		
 		return activeSynapses;
 		
+	}
+	
+	public String toString(){
+		String s="Synapses :"+synapses.size();
+		s+="\nSequnece segment:" + sequenceSegment;
+		s+="\nActive: "+ activeState;
+		s+="\nLearn: " + learnState;
+		s+="\n"+synapses.toString();
+		return s;
 	}
 	
 	/**
