@@ -1,3 +1,4 @@
+
 package htm;
 
 import java.util.ArrayList;
@@ -7,16 +8,19 @@ public class Column {
 	//parameters
 	static final int Cycle=100;
 	static final int Layer=5;
-	static final int MinOverlap=3;
-	static final double MinOverlapRatio=0.005;
-	static final double DesiredLocalActivityRatio=0.05;
-	static final int DesiredLocalActivity=10;
-	static final double ActiveDutyCycleFraction=0.3;
-	static final double OverlapDutyCycleFraction=0.3;
+	
+	static final int MinOverlap=5;
+	static final double MinOverlapRatio=0.1;
+	
+	static final double DesiredLocalActivityRatio=0.1;
+	static final int DesiredLocalActivity=5;
+	
+	static final double ActiveDutyCycleFraction=0.05;
+	static final double OverlapDutyCycleFraction=0.05;
 	static final int DutyCycle=100;
-	static final double BoostStep=2.0;
+	static final double BoostStep=0.2;
 	//min threshold for to consider a segment as best matching segment
-	static final int MinThreshold=2;
+	static final int MinThreshold=4;
 	
 	public int posRow;
 	public int posColumn;
@@ -44,23 +48,20 @@ public class Column {
 	}
 	
 	public void calculateOverlap(boolean[][] input, int t){
-		//reset
-		overlap=0;
-		active=false;
 		for(Synapse s : proxSegment.synapses){
 			if(s.isConnected() && input[s.destCoor[0]][s.destCoor[1]]){
 				overlap+=1;					
 			}
 		}
-		//if(overlap >= (int)ReceptiveField.size()*MinOverlapRatio){
-		if(overlap >= MinOverlap){
+		if(overlap >= (int)proxSegment.countConnection()*MinOverlapRatio){
+		//if(overlap >= MinOverlap){
 			overlap = (int)(overlap*boost);
 			overlapQueue.offer(t);
 		}else if(overlap>0) overlap=-1;//special tag for below threshold overlap
 	}
 
 	public boolean isActive(int t){
-		//this function finds out whether the overlap score of this column 
+		//this function figures out whether the overlap score of this column 
 		//is among the top DesiredLocalActivity-percent of its neighbor
 		//if it is set it active, if not remain inactive
 		if(overlap>0){
@@ -73,8 +74,8 @@ public class Column {
 				}
 				else if(c.overlap == this.overlap) tie++;
 			}
-			int maxLocalRank= DesiredLocalActivity;
-			//int maxLocalRank= (int) Math.round(neighbor.size()*DesiredLocalActivityRatio);
+			//int maxLocalRank= DesiredLocalActivity;
+			int maxLocalRank= (int) Math.round(neighbor.size()*DesiredLocalActivityRatio);
 			//test display
 			//System.out.print(maxLocalRank);
 			//System.out.print("["+this.posRow+","+this.posColumn+"];");
@@ -181,16 +182,14 @@ public class Column {
 	public Cell getBestMatchingCell() {
 		int max=MinThreshold;
 		Segment bestMatchingSegment=new Segment();
-		Cell bestMatchingCell = new Cell();
+		Cell bestMatchingCell = new Cell(this);
 		boolean found=false;
 		for(Cell cell : cells){
 			int count=0;
 			if(cell.distSegments.size() > 0){
 				for(Segment seg : cell.distSegments){
 					for(Synapse s : seg.synapses){
-						if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState == true){
-							count++;
-						}
+						if(s.destRegion.columns[s.destCoor[0]][s.destCoor[1]].cells[s.destCoor[2]].pActiveState == true)count++;
 					}
 					if(count>max){
 						found=true;
@@ -213,9 +212,10 @@ public class Column {
 					bestMatchingCell=cell;
 				}
 			}
+			//getActiveSynapses(timeT,addNewSynapses,destRegion) this time step or previous, add new synapses or not
 			bestMatchingSegment.synapses=bestMatchingSegment.getActiveSynapses(false,true, parentRegion);
-			if(bestMatchingSegment.synapses.size()>0){
-				bestMatchingCell.distSegments.add(bestMatchingSegment);
+			if(bestMatchingSegment.synapses.size() > 0){
+				//bestMatchingCell.distSegments.add(bestMatchingSegment);
 				bestMatchingCell.segmentUpdateList.add(new SegmentUpdate(bestMatchingSegment,bestMatchingSegment.synapses));
 			}
 		}
@@ -226,8 +226,8 @@ public class Column {
 	public String toString(){
 		String output="\n";
 		output+="["+posRow+", "+posColumn+"]";
-		if(active) output+="\tActive\n";
-		else output+="\tInactive\n";
+		if(active) output+="\tActive "+boost+"\n";
+		else output+="\tInactive "+boost+"\n";
 		output+="ovelapCycle: ";
 		for(int i=0;i<overlapQueue.size();i++){
 			output+=(overlapQueue.get(i)+";");
@@ -237,33 +237,34 @@ public class Column {
 			output+=(activeQueue.get(i)+";");
 		}
 		output+="\n";
-		//receptive field
 		
+		//receptive field (sensory region)
 		output+="Receptive Field size: "+proxSegment.synapses.size()+"\n";
 		int row=parentRegion.inputRegion.row;
 		int column=parentRegion.inputRegion.column;
-		boolean[][] outputMatrix=new boolean[row][column];
+		double[][] outputMatrix=new double[row][column];
 		int countConnectedSynapses=0;
 		for(Synapse s: proxSegment.synapses){
 			//print only connected Synapses
 			if(s.isConnected()){
-				outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
+				outputMatrix[s.destCoor[0]][s.destCoor[1]]=s.permanence;
 				countConnectedSynapses++;
 			}
+			else outputMatrix[s.destCoor[0]][s.destCoor[1]]=-1;
 			//print all synapses
 			//outputMatrix[s.destCoor[0]][s.destCoor[1]]=true;
 		}
 		output+="Connected Synapses: "+countConnectedSynapses+"\n";
-		/*
+		
 		//print out all synapses
 		for(int i=0; i< row;i++){
 			for(int j=0; j< column; j++){
-				if(outputMatrix[i][j]==true)output+="1";
-				else output+="0";
+				if(outputMatrix[i][j]>0)output+=String.format("%.1f", outputMatrix[i][j]);
+				else if(outputMatrix[i][j]==-1)output+="-.-";
+				else output+=" . ";
 			}
 			output+="\n";
 		}
-		*/
 		
 		//Neighbor
 		output+="Neighbor size: "+neighbor.size()+"\n";
@@ -281,6 +282,11 @@ public class Column {
 			output+="\n";
 		}
 		*/
+		output+="Distal Segments: ";
+		for(int i=0; i<Layer;i++){
+			output+="["+i+","+cells[i].distSegments.size()+"]";
+		}
+		
 		for(int i=0; i<Layer;i++){
 			if(cells[i].tLearnState==true){
 				output+="\nLearning Cell "+i+";\n"+cells[i].toString();
@@ -295,7 +301,7 @@ public class Column {
 		parentRegion=re;
 		//inhibitionRadius=i;
 		for(int j=0; j<Layer; j++){
-			cells[j]=new Cell();
+			cells[j]=new Cell(this);
 		}
 	}
 

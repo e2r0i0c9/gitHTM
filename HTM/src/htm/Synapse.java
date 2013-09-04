@@ -1,11 +1,13 @@
 package htm;
 
+import java.util.ArrayList;
+
 public class Synapse {
 	static final float connectedPerm = (float)0.2;
 	static final double initialRange = 0.3;
 	static final float permanenceIncStep = connectedPerm/11;
 	static final float permanenceDecStep = connectedPerm/11;
-	static final double PermBoostFactor=0.1;
+	static final double PermBoostFactor=0.2;
 	
 	
 	
@@ -20,7 +22,8 @@ public class Synapse {
 		else return false;
 	}
 	
-	public boolean equals(Synapse s){
+	public boolean equals(Object o){
+		Synapse s = (Synapse) o;
 		if(s.destCoor[0]==this.destCoor[0] && s.destCoor[1]==this.destCoor[1] && s.destCoor[2]==this.destCoor[2] && s.destRegion==this.destRegion) return true;
 		return false;
 	}
@@ -41,7 +44,7 @@ public class Synapse {
 	}
 	
 	public String toString(){
-		return ("["+destCoor[0]+","+destCoor[1]+","+destCoor[2]+"]"+permanence);
+		return ("["+destCoor[0]+","+destCoor[1]+","+destCoor[2]+"]"+permanence+updated);
 	}
 	
 	public Synapse(Region reg, int r, int c,int l){
@@ -73,8 +76,14 @@ public class Synapse {
 		//public boolean update=false;
 	}
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
+		Region region = new Region();
+		Segment seg = new Segment();
+		Synapse s = new Synapse(region, 1,2,3);
+		seg.synapses.add(new Synapse(region, 1,2,3));
+		if(!seg.synapses.contains(s)){
+			seg.synapses.add(s);
+		}
+		else System.out.print("Aleady included");
 	}
 
 }
